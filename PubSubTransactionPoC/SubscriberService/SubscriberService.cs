@@ -57,8 +57,6 @@ namespace SubscriberService
                 cancellationToken.ThrowIfCancellationRequested();
                 
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-
-
             }
         }
 
@@ -68,7 +66,7 @@ namespace SubscriberService
             var topicSvc = ServiceProxy.Create<ITopicService>(new Uri("fabric:/PubSubTransactionPoC/Topic1"),
                 new ServicePartitionKey(0));
            
-            var msg = await topicSvc.InternalPop(this.Context.ServiceName.Segments[2]).ConfigureAwait(false);
+            var msg = await topicSvc.InternalDequeue(this.Context.ServiceName.Segments[2]).ConfigureAwait(false);
             ServiceEventSource.Current.ServiceMessage(this.Context, $"NEW SUBSCRIBER MESSAGE  POP : {msg}");
             return msg;
         }

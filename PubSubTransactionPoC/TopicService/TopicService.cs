@@ -107,13 +107,34 @@ namespace TopicService
             }
         }
 
+        public async  Task<PubSubMessage> InternalPeek(string subscriberId)
+        {
+            var queueName = $"queue_{subscriberId}";
+            var q = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>(queueName).ConfigureAwait(false);
+            var lst = await this.StateManager.GetOrAddAsync<IReliableDictionary<string, bool>>("queueList").ConfigureAwait(false);
+            PubSubMessage msg = null;
+            using (var tx = this.StateManager.CreateTransaction())
+            {
+                if (!await lst.ContainsKeyAsync(tx, queueName).ConfigureAwait(false))
+                {
+                    await lst.AddAsync(tx, queueName, true).ConfigureAwait(false);
+                }
+
+                var msgCV = await q.TryPeekAsync(tx).ConfigureAwait(false);
+                if (msgCV.HasValue)
+                    msg = msgCV.Value;
+                await tx.CommitAsync().ConfigureAwait(false);
+            }
+            ServiceEventSource.Current.ServiceMessage(this.Context, $"DEQUEUE FOR {subscriberId} : {msg?.Message}");
+            return msg;
+        }
+
         /// <summary>
-        /// HACK Method for sprint0. 
         /// Should be removed in next sprint.
         /// </summary>
         /// <param name="subcriberId"></param>
         /// <returns></returns>
-        public async Task<PubSubMessage> InternalPop(string subscriberId)
+        public async Task<PubSubMessage> InternalDequeue(string subscriberId)
         {
             var queueName = $"queue_{subscriberId}";
             var q = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>(queueName).ConfigureAwait(false);
@@ -137,5 +158,7 @@ namespace TopicService
             ServiceEventSource.Current.ServiceMessage(this.Context, $"DEQUEUE FOR {subscriberId} : {msg?.Message}");
             return msg;
         }
+
+      
     }
 }
