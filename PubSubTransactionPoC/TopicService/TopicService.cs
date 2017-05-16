@@ -109,7 +109,7 @@ namespace TopicService
 
         public async  Task<PubSubMessage> InternalPeek(string subscriberId)
         {
-            return await RunTopicOutputQueueAction(subscriberId, (q, tx) => q.TryPeekAsync(tx)).ConfigureAwait(false);
+            return await RunOnOutputQueue(subscriberId, (q, tx) => q.TryPeekAsync(tx)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -119,17 +119,15 @@ namespace TopicService
         /// <returns></returns>
         public async Task<PubSubMessage> InternalDequeue(string subscriberId)
         {
-            return await RunTopicOutputQueueAction(subscriberId,(q,tx)=> q.TryDequeueAsync(tx)).ConfigureAwait(false);
+            return await RunOnOutputQueue(subscriberId,(q,tx)=> q.TryDequeueAsync(tx)).ConfigureAwait(false);
         }
 
-        async Task<PubSubMessage> RunTopicOutputQueueAction(string subscriberId,
+        async Task<PubSubMessage> RunOnOutputQueue(string subscriberId,
             Func<IReliableQueue<PubSubMessage>,ITransaction, Task<ConditionalValue<PubSubMessage>>> callOnQueue)
         {
             var queueName = $"queue_{subscriberId}";
-            var q = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>(queueName).ConfigureAwait(false);
-
+            var queue = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>(queueName).ConfigureAwait(false);
             var lst = await this.StateManager.GetOrAddAsync<IReliableDictionary<string, bool>>("queueList").ConfigureAwait(false);
-
 
             PubSubMessage msg = null;
             using (var tx = this.StateManager.CreateTransaction())
@@ -139,7 +137,7 @@ namespace TopicService
                     await lst.AddAsync(tx, queueName, true).ConfigureAwait(false);
                 }
 
-                var msgCV = await callOnQueue(q, tx).ConfigureAwait(false);
+                var msgCV = await callOnQueue(queue, tx).ConfigureAwait(false);
                 //var msgCV = await q.TryDequeueAsync(tx).ConfigureAwait(false);
                 if (msgCV.HasValue)
                     msg = msgCV.Value;

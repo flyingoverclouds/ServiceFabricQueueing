@@ -47,7 +47,9 @@ namespace SubscriberService
         /// <param name="cancellationToken">Canceled when Service Fabric needs to shut down this service replica.</param>
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false); // DELAY HACK TO AVOID STRANGE ERROR IF TOO QUICK STARTUP
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false); // DELAY HACK TO AVOID STRANGE ERROR IF TOO QUICK STARTUP
+
+            // TODO : replace appname & serviceName by value comming from configuration
             var topicSvc = ServiceProxy.Create<ITopicService>(new Uri("fabric:/PubSubTransactionPoC/Topic1"),
                  new ServicePartitionKey(0));
             await topicSvc.RegisterSubscriber(this.Context.ServiceName.Segments[2]).ConfigureAwait(false);
@@ -55,19 +57,50 @@ namespace SubscriberService
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    // TODO : catch error on calling topic : if exception, recreate the serviceproxy
+                    var serviceName = this.Context.ServiceName.Segments[2];
+                    var queue = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>("messages").ConfigureAwait(false);
+                    var msg = await topicSvc.InternalPeek(serviceName).ConfigureAwait(false); // peek message from topic
+                    while (msg != null)
+                    {
+                        using (var tx = this.StateManager.CreateTransaction())
+                        {
+                            // add the message to to subscriber queue  
+                            await queue.EnqueueAsync(tx, msg);
+                            var qSize = await queue.GetCountAsync(tx).ConfigureAwait(false);
+                            await tx.CommitAsync().ConfigureAwait(false);
+                            ServiceEventSource.Current.ServiceMessage(this.Context, $"Subscriber:{serviceName}:LocalEnqueue : msg : {msg.Message}");
+                            ServiceEventSource.Current.ServiceMessage(this.Context, $"Subscriber:{serviceName}:QueueStat: {qSize} message(s)");
+                        }
+                        // confirm the local enqueuing to the topicservice by dequeuing the last peeked message
+                        var msg2 = await topicSvc.InternalDequeue(this.Context.ServiceName.Segments[2]).ConfigureAwait(false);
+
+                        // try peek next message from topic
+                        msg = await topicSvc.InternalPeek(this.Context.ServiceName.Segments[2]).ConfigureAwait(false); 
+                    }
+                    
+                }
+                catch (Exception ex)
+                {
+                    ServiceEventSource.Current.ServiceMessage(this.Context, $"EXCEPTION: {ex.ToString()}");
+                }
             }
         }
 
         public async Task<PubSubMessage> Pop()
         {
-            // TODO : replace appname & service name by value comming from configuration
-            var topicSvc = ServiceProxy.Create<ITopicService>(new Uri("fabric:/PubSubTransactionPoC/Topic1"),
-                new ServicePartitionKey(0));
-           
-            var msg = await topicSvc.InternalDequeue(this.Context.ServiceName.Segments[2]).ConfigureAwait(false);
-            ServiceEventSource.Current.ServiceMessage(this.Context, $"NEW SUBSCRIBER MESSAGE  POP : {msg}");
+            PubSubMessage msg = null;
+            var queue = await this.StateManager.GetOrAddAsync<IReliableQueue<PubSubMessage>>("messages").ConfigureAwait(false);
+            using (var tx = this.StateManager.CreateTransaction())
+            {
+                var msgCV = await queue.TryDequeueAsync(tx).ConfigureAwait(false);
+                if (msgCV.HasValue)
+                    msg = msgCV.Value;
+                await tx.CommitAsync().ConfigureAwait(false);
+            }
             return msg;
         }
     }
