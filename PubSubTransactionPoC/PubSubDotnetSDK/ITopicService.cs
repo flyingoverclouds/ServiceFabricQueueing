@@ -33,13 +33,5 @@ namespace PubSubDotnetSDK
         [Obsolete("WILL BE REPLACE BY TRANSACTIONNAL IMPLEMENTATION")]
         Task<PubSubMessage> InternalPop(string subscriberId);
 
-
-        Task<PubSubMessage> TransactionDequeueMessage(string subcriberId);
-
-
-
-
-
-
     }
 }
