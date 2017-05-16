@@ -23,13 +23,23 @@ namespace PubSubDotnetSDK
         /// <returns></returns>
         Task RegisterSubscriber(string subscriberId);
 
-        
+
 
         /// <summary>
         /// Just for testing in sprint0
         /// </summary>
         /// <param name="subcriberId">Name the of caller subscriber service</param>
         /// <returns></returns>
+        [Obsolete("WILL BE REPLACE BY TRANSACTIONNAL IMPLEMENTATION")]
         Task<PubSubMessage> InternalPop(string subscriberId);
+
+
+        Task<PubSubMessage> TransactionDequeueMessage(string subcriberId);
+
+
+
+
+
+
     }
 }

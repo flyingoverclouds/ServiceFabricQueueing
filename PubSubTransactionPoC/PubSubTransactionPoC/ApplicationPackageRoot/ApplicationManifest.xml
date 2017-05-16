@@ -1,16 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="PubSubTransactionPoCType" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="TransactionnalTopicPoCType" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="TestWebApi_InstanceCount" DefaultValue="1" />
     <Parameter Name="Subscriber1_MinReplicaSetSize" DefaultValue="3" />
     <Parameter Name="Subscriber1_PartitionCount" DefaultValue="1" />
     <Parameter Name="Subscriber1_TargetReplicaSetSize" DefaultValue="3" />
-    <Parameter Name="Subscriber2_MinReplicaSetSize" DefaultValue="3" />
-    <Parameter Name="Subscriber2_PartitionCount" DefaultValue="1" />
-    <Parameter Name="Subscriber2_TargetReplicaSetSize" DefaultValue="3" />
-    <Parameter Name="Subscriber3_MinReplicaSetSize" DefaultValue="3" />
-    <Parameter Name="Subscriber3_PartitionCount" DefaultValue="1" />
-    <Parameter Name="Subscriber3_TargetReplicaSetSize" DefaultValue="3" />
     <Parameter Name="Topic1_MinReplicaSetSize" DefaultValue="3" />
     <Parameter Name="Topic1_PartitionCount" DefaultValue="1" />
     <Parameter Name="Topic1_TargetReplicaSetSize" DefaultValue="3" />
@@ -62,15 +56,5 @@
         <UniformInt64Partition PartitionCount="[Subscriber1_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
       </StatefulService>
     </Service>
-    <!--<Service Name="Subscriber2">
-      <StatefulService ServiceTypeName="SubscriberServiceType" TargetReplicaSetSize="[Subscriber2_TargetReplicaSetSize]" MinReplicaSetSize="[Subscriber2_MinReplicaSetSize]">
-        <UniformInt64Partition PartitionCount="[Subscriber2_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
-      </StatefulService>
-    </Service>
-    <Service Name="Subscriber3">
-      <StatefulService ServiceTypeName="SubscriberServiceType" TargetReplicaSetSize="[Subscriber3_TargetReplicaSetSize]" MinReplicaSetSize="[Subscriber3_MinReplicaSetSize]">
-        <UniformInt64Partition PartitionCount="[Subscriber3_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
-      </StatefulService>
-    </Service>-->
   </DefaultServices>
 </ApplicationManifest>
